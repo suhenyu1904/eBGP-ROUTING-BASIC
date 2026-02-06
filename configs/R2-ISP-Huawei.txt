@@ -20,7 +20,7 @@ interface GigabitEthernet1/0/0
 
 ! Inter-ISP Link to ISP B (Cisco)
 ! Simulating the Internet Backbone
-interface GigabitEthernet1/0/1
+interface GigabitEthernet1/0/2
  description Link-to-ISP-B-Backbone
  ip address 23.23.23.1 30
  undo shutdown
