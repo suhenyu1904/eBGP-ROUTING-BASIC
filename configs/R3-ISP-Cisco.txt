@@ -1,0 +1,53 @@
+! Filename: R3-ISP-Cisco.txt
+! Device: Cisco IOS Router
+! Role: ISP B (AS 65003) - The "Primary/Fast" Link
+! Author: Hendri (Susilo19042004)
+
+version 15.4
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname R3-ISP-B-Cisco
+!
+! --- INTERFACE CONFIGURATION ---
+! Downlink to Customer (R1)
+interface GigabitEthernet0/0
+ description Link-to-Customer-R1
+ ip address 10.10.20.2 255.255.255.252
+ no shutdown
+!
+! Inter-ISP Link to ISP A (Huawei)
+! Simulating the Internet Backbone
+interface GigabitEthernet0/1
+ description Link-to-ISP-A-Huawei
+ ip address 23.23.23.2 255.255.255.252
+ no shutdown
+!
+! --- BGP CONFIGURATION ---
+!
+router bgp 65003
+ bgp router-id 3.3.3.3
+ bgp log-neighbor-changes
+ !
+ ! Neighbor Definitions
+ ! Peer with Customer (R1)
+ neighbor 10.10.20.1 remote-as 65001
+ neighbor 10.10.20.1 description Peer-to-Customer-R1
+ !
+ ! Peer with ISP A (Huawei)
+ neighbor 23.23.23.1 remote-as 65002
+ neighbor 23.23.23.1 description Peer-to-Huawei-ISP-A
+ !
+ address-family ipv4
+  ! Enable Peers
+  neighbor 10.10.20.1 activate
+  neighbor 23.23.23.1 activate
+  !
+  ! Note: R3 serves as a transit provider here.
+  ! It learns 8.8.8.8 from ISP A and advertises it to Customer R1.
+  ! It learns 192.168.10.0/24 from Customer R1 and advertises it to ISP A.
+  ! No specific policy is needed here; we honor standard BGP attributes.
+ exit-address-family
+!
+end
