@@ -1,1 +1,81 @@
+! Filename: R1-Customer.txt
+! Device: Cisco IOS Router
+! Role: Customer Edge (AS 65001)
+! Author: Hendri (Susilo19042004)
 
+version 15.4
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname R1-Customer
+!
+! --- INTERFACE CONFIGURATION ---
+! Uplink to ISP A (Huawei) - Backup Path
+interface GigabitEthernet0/0
+ description Link-to-ISP-A-Huawei
+ ip address 10.10.10.1 255.255.255.252
+ no shutdown
+!
+! Uplink to ISP B (Cisco) - Primary Path
+interface GigabitEthernet0/1
+ description Link-to-ISP-B-Cisco
+ ip address 10.10.20.1 255.255.255.252
+ no shutdown
+!
+! Local LAN Network (Client Simulation)
+interface Loopback0
+ description Client-LAN
+ ip address 192.168.10.1 255.255.255.0
+!
+! --- POLICY DEFINITIONS ---
+!
+! 1. Security: Prefix List to Whitelist Own Network
+! Prevents R1 from becoming a transit router (Route Leak Prevention)
+ip prefix-list OWN-PREFIX seq 5 permit 192.168.10.0/24
+!
+! 2. Traffic Engineering: Access List for Route-Map
+! Matches LAN traffic for BGP attribute manipulation
+ip access-list standard MATCH-LAN
+ permit 192.168.10.0 0.0.0.255
+!
+! 3. Route-Map: AS-Path Prepending (Inbound Control)
+! Artificially increases AS-Path length to make ISP A look "further away"
+route-map PREPEND-TO-ISP-A permit 10
+ match ip address MATCH-LAN
+ set as-path prepend 65001 65001 65001
+!
+route-map PREPEND-TO-ISP-A permit 20
+ ! Allow other traffic (implicit deny prevention)
+!
+! --- BGP CONFIGURATION ---
+!
+router bgp 65001
+ bgp router-id 1.1.1.1
+ bgp log-neighbor-changes
+ !
+ ! Neighbor Definitions
+ neighbor 10.10.10.2 remote-as 65002
+ neighbor 10.10.10.2 description Peer-to-Huawei-ISP-A
+ !
+ neighbor 10.10.20.2 remote-as 65003
+ neighbor 10.10.20.2 description Peer-to-Cisco-ISP-B
+ !
+ ! Advertise Local Network
+ address-family ipv4
+  network 192.168.10.0 mask 255.255.255.0
+  !
+  ! Policy to ISP A (Huawei) - BACKUP LINK
+  ! Apply Prepending (make path longer) & Security Filter
+  neighbor 10.10.10.2 activate
+  neighbor 10.10.10.2 route-map PREPEND-TO-ISP-A out
+  neighbor 10.10.10.2 prefix-list OWN-PREFIX out
+  !
+  ! Policy to ISP B (Cisco) - PRIMARY LINK
+  ! Apply Weight 1000 (prefer this for upload) & Security Filter
+  neighbor 10.10.20.2 activate
+  neighbor 10.10.20.2 weight 1000
+  neighbor 10.10.20.2 prefix-list OWN-PREFIX out
+ exit-address-family
+!
+end
