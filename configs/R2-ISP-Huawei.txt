@@ -1,0 +1,65 @@
+! Filename: R2-ISP-Huawei.txt
+! Device: Huawei NE40E / VRP
+! Role: ISP A (AS 65002) - The "Backup/Slow" Link
+! Author: Hendri (Susilo19042004)
+
+! Enter System View
+system-view
+
+! Set Hostname
+sysname R2-ISP-A-Huawei
+
+! --- INTERFACE CONFIGURATION ---
+
+! Downlink to Customer (R1)
+interface GigabitEthernet1/0/0
+ description Link-to-Customer-R1
+ ip address 10.10.10.2 30
+ undo shutdown
+#
+
+! Inter-ISP Link to ISP B (Cisco)
+! Simulating the Internet Backbone
+interface GigabitEthernet1/0/1
+ description Link-to-ISP-B-Backbone
+ ip address 23.23.23.1 30
+ undo shutdown
+#
+
+! Loopback Interface simulating "The Internet" (e.g., Google DNS)
+interface Loopback0
+ description Internet-Service-Google
+ ip address 8.8.8.8 32
+#
+
+! --- BGP CONFIGURATION ---
+
+bgp 65002
+ router-id 2.2.2.2
+ 
+ ! Define Neighbors (Peers)
+ ! Peer with Customer (R1)
+ peer 10.10.10.1 as-number 65001
+ peer 10.10.10.1 description Customer-R1
+ 
+ ! Peer with ISP B (R3)
+ peer 23.23.23.2 as-number 65003
+ peer 23.23.23.2 description Peer-ISP-B
+ 
+ ! Enter IPv4 Address Family
+ ipv4-family unicast
+  undo synchronization
+  
+  ! Enable Neighbors
+  peer 10.10.10.1 enable
+  peer 23.23.23.2 enable
+  
+  ! Advertise "Internet" Network (8.8.8.8)
+  network 8.8.8.8 255.255.255.255
+  
+  ! Note: No specific policy manipulation here.
+  ! We accept whatever AS-Path R1 sends us.
+  ! If R1 prepends (adds extra AS), we will see it here.
+#
+
+return
