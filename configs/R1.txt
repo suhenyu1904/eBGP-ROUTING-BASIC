@@ -18,7 +18,7 @@ interface GigabitEthernet0/0
  no shutdown
 !
 ! Uplink to ISP B (Cisco) - Primary Path
-interface GigabitEthernet0/1
+interface GigabitEthernet0/2
  description Link-to-ISP-B-Cisco
  ip address 10.10.20.1 255.255.255.252
  no shutdown
